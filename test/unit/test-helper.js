@@ -15,6 +15,10 @@ p.write = function(packet) {
   this.packets.push(packet);
 };
 
+p.pause = function() {
+  
+};
+
 p.writable = true;
 
 createClient = function() {
