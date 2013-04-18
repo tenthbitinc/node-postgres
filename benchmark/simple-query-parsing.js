@@ -2,8 +2,16 @@ var Client = require(__dirname + '/../lib/client');
 var buffers = require(__dirname + '/../test/test-buffers');
 require(__dirname + '/../test/unit/test-helper');
 
-var stream = new MemoryStream();
+var stream = new require('stream').PassThrough();
 stream.readyState = 'open';
+stream.write = function() {
+  //the stream used in the connection is
+  //already considered a duplex stream
+  //and its write method is used for writing
+  //out to postgres so for the benchmark
+  //ignore all writing so outgoing buffers
+  //do not get sent to the reader
+};
 var client = new Client({
   stream: stream
 });
@@ -52,7 +60,7 @@ client.connect(assert.calls(function() {
         assert.equal(res.rows.length, 9);
         done();
       });
-      buffers.forEach(stream.emit.bind(stream, 'data'));
+      buffers.forEach(stream.push.bind(stream));
     };
   };
 }));
