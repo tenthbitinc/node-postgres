@@ -137,6 +137,10 @@ public:
   EscapeIdentifier(const Arguments& args)
   {
     HandleScope scope;
+#ifdef ESCAPE_NOT_SUPPORTED
+    THROW("Your version of libpq does not support PQEscapeIdentifier");
+#endif
+
     Connection *self = ObjectWrap::Unwrap<Connection>(args.This());
 
     char* inputStr = MallocCString(args[0]);
@@ -163,7 +167,12 @@ public:
   EscapeLiteral(const Arguments& args)
   {
     HandleScope scope;
+#ifdef ESCAPE_NOT_SUPPORTED
+    THROW("Your version of libpq does not support PQEscapeLiteral");
+#endif
     Connection *self = ObjectWrap::Unwrap<Connection>(args.This());
+
+
 
     char* inputStr = MallocCString(args[0]);
 
@@ -364,13 +373,18 @@ protected:
   char * EscapeIdentifier(const char *str)
   {
     TRACE("js::EscapeIdentifier")
+
+#ifndef ESCAPE_NOT_SUPPORTED
     return PQescapeIdentifier(connection_, str, strlen(str));
+#endif
   }
 
   char * EscapeLiteral(const char *str)
   {
     TRACE("js::EscapeLiteral")
+#ifndef ESCAPE_NOT_SUPPORTED
     return PQescapeLiteral(connection_, str, strlen(str));
+#endif
   }
 
   int Send(const char *queryText)

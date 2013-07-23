@@ -1,4 +1,9 @@
 {
+  'target_defaults': {
+    'defines': [
+      '<!@(node ./src/config.js)'
+    ]
+  },
   'targets': [
     {
       'target_name': 'binding',
