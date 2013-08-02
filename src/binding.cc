@@ -18,24 +18,6 @@
 using namespace v8;
 using namespace node;
 
-static Persistent<String> severity_symbol;
-static Persistent<String> code_symbol;
-static Persistent<String> detail_symbol;
-static Persistent<String> hint_symbol;
-static Persistent<String> position_symbol;
-static Persistent<String> internalPosition_symbol;
-static Persistent<String> internalQuery_symbol;
-static Persistent<String> where_symbol;
-static Persistent<String> file_symbol;
-static Persistent<String> line_symbol;
-static Persistent<String> routine_symbol;
-static Persistent<String> name_symbol;
-static Persistent<String> value_symbol;
-static Persistent<String> type_symbol;
-static Persistent<String> channel_symbol;
-static Persistent<String> payload_symbol;
-static Persistent<String> emit_symbol;
-static Persistent<String> command_symbol;
 
 class Connection : public ObjectWrap {
 
@@ -51,24 +33,6 @@ public:
     t->InstanceTemplate()->SetInternalFieldCount(1);
     t->SetClassName(String::NewSymbol("Connection"));
 
-    emit_symbol = NODE_PSYMBOL("emit");
-    severity_symbol = NODE_PSYMBOL("severity");
-    code_symbol = NODE_PSYMBOL("code");
-    detail_symbol = NODE_PSYMBOL("detail");
-    hint_symbol = NODE_PSYMBOL("hint");
-    position_symbol = NODE_PSYMBOL("position");
-    internalPosition_symbol = NODE_PSYMBOL("internalPosition");
-    internalQuery_symbol = NODE_PSYMBOL("internalQuery");
-    where_symbol = NODE_PSYMBOL("where");
-    file_symbol = NODE_PSYMBOL("file");
-    line_symbol = NODE_PSYMBOL("line");
-    routine_symbol = NODE_PSYMBOL("routine");
-    name_symbol = NODE_PSYMBOL("name");
-    value_symbol = NODE_PSYMBOL("value");
-    type_symbol = NODE_PSYMBOL("dataTypeID");
-    channel_symbol = NODE_PSYMBOL("channel");
-    payload_symbol = NODE_PSYMBOL("payload");
-    command_symbol = NODE_PSYMBOL("command");
 
     NODE_SET_PROTOTYPE_METHOD(t, "connect", Connect);
 #ifdef ESCAPE_SUPPORTED
@@ -556,8 +520,8 @@ protected:
       TRACE("PQnotifies");
       while ((notify = PQnotifies(connection_))) {
         Local<Object> result = Object::New();
-        result->Set(channel_symbol, String::New(notify->relname));
-        result->Set(payload_symbol, String::New(notify->extra));
+        result->Set(String::New("channel"), String::New(notify->relname));
+        result->Set(String::New("payload"), String::New(notify->extra));
         Handle<Value> res = (Handle<Value>)result;
         Emit("notification", &res);
         PQfreemem(notify);
@@ -612,11 +576,11 @@ protected:
       Local<Object> field = Object::New();
       //name of field
       char* fieldName = PQfname(result, fieldNumber);
-      field->Set(name_symbol, String::New(fieldName));
+      field->Set(String::New("name"), String::New(fieldName));
 
       //oid of type of field
       int fieldType = PQftype(result, fieldNumber);
-      field->Set(type_symbol, Integer::New(fieldType));
+      field->Set(String::New("dataTypeID"), Integer::New(fieldType));
 
       row->Set(Integer::New(fieldNumber), field);
     }
@@ -677,8 +641,8 @@ protected:
   {
     HandleScope scope;
     Local<Object> info = Object::New();
-    info->Set(command_symbol, String::New(PQcmdStatus(result)));
-    info->Set(value_symbol, String::New(PQcmdTuples(result)));
+    info->Set(String::New("command"), String::New(PQcmdStatus(result)));
+    info->Set(String::New("value"), String::New(PQcmdTuples(result)));
     Handle<Value> e = (Handle<Value>)info;
     Emit("_cmdStatus", &e);
   }
@@ -725,23 +689,23 @@ protected:
     Local<Object> msg = Local<Object>::Cast(Exception::Error(String::New(errorMessage)));
     TRACE("AttachErrorFields");
     //add the other information returned by Postgres to the error object
-    AttachErrorField(result, msg, severity_symbol, PG_DIAG_SEVERITY);
-    AttachErrorField(result, msg, code_symbol, PG_DIAG_SQLSTATE);
-    AttachErrorField(result, msg, detail_symbol, PG_DIAG_MESSAGE_DETAIL);
-    AttachErrorField(result, msg, hint_symbol, PG_DIAG_MESSAGE_HINT);
-    AttachErrorField(result, msg, position_symbol, PG_DIAG_STATEMENT_POSITION);
-    AttachErrorField(result, msg, internalPosition_symbol, PG_DIAG_INTERNAL_POSITION);
-    AttachErrorField(result, msg, internalQuery_symbol, PG_DIAG_INTERNAL_QUERY);
-    AttachErrorField(result, msg, where_symbol, PG_DIAG_CONTEXT);
-    AttachErrorField(result, msg, file_symbol, PG_DIAG_SOURCE_FILE);
-    AttachErrorField(result, msg, line_symbol, PG_DIAG_SOURCE_LINE);
-    AttachErrorField(result, msg, routine_symbol, PG_DIAG_SOURCE_FUNCTION);
+    AttachErrorField(result, msg, String::New("severity"), PG_DIAG_SEVERITY);
+    AttachErrorField(result, msg, String::New("code"), PG_DIAG_SQLSTATE);
+    AttachErrorField(result, msg, String::New("detail"), PG_DIAG_MESSAGE_DETAIL);
+    AttachErrorField(result, msg, String::New("hint"), PG_DIAG_MESSAGE_HINT);
+    AttachErrorField(result, msg, String::New("position"), PG_DIAG_STATEMENT_POSITION);
+    AttachErrorField(result, msg, String::New("internalPosition"), PG_DIAG_INTERNAL_POSITION);
+    AttachErrorField(result, msg, String::New("internalQuery"), PG_DIAG_INTERNAL_QUERY);
+    AttachErrorField(result, msg, String::New("where"), PG_DIAG_CONTEXT);
+    AttachErrorField(result, msg, String::New("file"), PG_DIAG_SOURCE_FILE);
+    AttachErrorField(result, msg, String::New("line"), PG_DIAG_SOURCE_LINE);
+    AttachErrorField(result, msg, String::New("routine"), PG_DIAG_SOURCE_FUNCTION);
     Handle<Value> m = msg;
     TRACE("EmitError");
     Emit("_error", &m);
   }
 
-  void AttachErrorField(const PGresult *result, const Local<Object> msg, const Persistent<String> symbol, int fieldcode)
+  void AttachErrorField(const PGresult *result, const Local<Object> msg, const Local<String> symbol, int fieldcode)
   {
     char *val = PQresultErrorField(result, fieldcode);
     if(val) {
@@ -776,7 +740,7 @@ private:
   void Emit(int length, Handle<Value> *args) {
     HandleScope scope;
 
-    Local<Value> emit_v = this->handle_->Get(emit_symbol);
+    Local<Value> emit_v = this->handle_->Get(String::New("emit"));
     assert(emit_v->IsFunction());
     Local<Function> emit_f = emit_v.As<Function>();
 
